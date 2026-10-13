@@ -8,4 +8,13 @@
 -->
 <paths>
     <cache-path name="capture" path="capture/" />
+
+    <!--
+      更新包下载目录。
+
+      同样只暴露这一个子目录，不是整个 cacheDir。理由与上面一致：
+      授权范围给大了等于把私有目录整体外借。这一条只让系统安装器
+      能读到那个 APK，仅此而已。
+    -->
+    <cache-path name="update" path="update/" />
 </paths>

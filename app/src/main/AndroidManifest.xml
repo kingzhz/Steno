@@ -3,6 +3,16 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      内置更新要调用系统安装器。
+
+      Android 8.0 起，普通应用必须声明这个权限才能调起「安装未知应用」的流程；
+      没声明的话 startActivity 会静默失败（用户只看到点了没反应）。
+      注意：声明本身不等于获得授权 —— 用户仍需在系统设置里为本应用打开
+      「允许安装未知应用」。没打开时系统会引导他去开，这是系统的设计，不能绕过。
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- allowBackup=false：附件目录可达 GB 级，绝不能进系统云备份 -->
     <application
         android:name=".SnoteApp"

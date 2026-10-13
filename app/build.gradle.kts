@@ -40,16 +40,16 @@ android {
         /**
          * 版本号。
          *
-         * v0.1.1 而不是 v0.1.0：v0.1.0 已经作为 debug 构建发布过（签名是 Android
-         * 通用调试密钥），而这一版换成了本项目的正式 release 密钥。
-         * 两个签名不能互相覆盖 —— 已装 v0.1.0 的人必须卸载才能装这一版，
-         * 而卸载会清空数据。
+         * 历史：
+         *   v0.1.0 — debug 构建（Android 通用调试密钥），签名与后续版本不兼容
+         *   v0.1.1 — 换成正式 release 密钥，并引入 OCR / 分享接收 / 备份 / 定位
+         *   v0.1.2 — 内置检查更新（走镜像 + SHA-256 校验）
          *
-         * 所以刻意不覆盖旧的 tag/release：版本号前进一位本身就是
-         * 「与上一版不兼容」的信号，也让历史可追溯。
+         * 每次发版都要同时改 versionCode 与 versionName：前者是系统判断
+         * 「能不能覆盖安装」的依据，后者是给人看的。
          */
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -88,7 +88,12 @@ android {
     }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        // AGP 8 起 BuildConfig 默认不生成。检查更新要读 BuildConfig.VERSION_NAME
+        // 拿当前版本 —— 硬编码版本号会和构建配置脱节，迟早对不上。
+        buildConfig = true
+    }
 
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }

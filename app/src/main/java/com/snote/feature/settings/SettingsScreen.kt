@@ -161,6 +161,10 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(Spacing.lg))
 
+            UpdateSection()
+
+            Spacer(Modifier.height(Spacing.lg))
+
             VisionModelSection(catalog = catalog)
 
             Spacer(Modifier.height(Spacing.lg))
