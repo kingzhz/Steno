@@ -41,7 +41,11 @@ import kotlinx.coroutines.delay
 @Composable
 fun SearchScreen(
     repo: NoteRepository,
-    onOpenDoc: (Long) -> Unit,
+    /**
+     * @param docId 文档 id
+     * @param cardId 命中的卡片 id —— 打开后要定位到它，否则 30 条命中全靠手翻
+     */
+    onOpenDoc: (Long, Long) -> Unit,
     onBack: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
@@ -131,7 +135,9 @@ fun SearchScreen(
                                 if (h.snippet.isNotEmpty()) {
                                     Text(h.snippet, style = MaterialTheme.typography.bodyMedium)
                                 }
-                                TextButton(onClick = { onOpenDoc(h.docId) }) { Text("打开笔记") }
+                                TextButton(onClick = { onOpenDoc(h.docId, h.cardId) }) {
+                                    Text("定位到这张卡")
+                                }
                             }
                         }
                     }

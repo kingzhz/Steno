@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -30,11 +31,17 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.snote.core.feature.FeatureController
+import com.snote.core.feature.FeatureRegistry
 import com.snote.feature.attachments.Attachment
 import com.snote.feature.attachments.AttachmentStore
+import com.snote.feature.ocr.OcrEngine
 import com.snote.ui.theme.Spacing
 import java.io.File
 import android.graphics.BitmapFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 文档的附件区。
@@ -60,6 +67,15 @@ fun AttachmentPanel(
     var version by remember { mutableStateOf(0) }
     var notice by remember { mutableStateOf<String?>(null) }
     val items = remember(version) { store.list() }
+
+    /**
+     * OCR 是否可用。
+     *
+     * 与其它功能开关同一条纪律：关掉时入口必须**真的消失**，
+     * 而不是点下去才报错 —— 后者会让用户以为功能坏了。
+     */
+    val featureController = remember { FeatureController(context.applicationContext) }
+    val ocrUsable = featureController.isUsable(FeatureRegistry.OCR)
 
     // 单选：一次导入一份。多选会让「去重命中哪几个」的反馈变得很难读。
     val picker = rememberLauncherForActivityResult(
@@ -113,6 +129,8 @@ fun AttachmentPanel(
                 AttachmentRow(
                     attachment = a,
                     store = store,
+                    ocrUsable = ocrUsable,
+                    onNotice = { notice = it },
                     onDelete = {
                         store.delete(a.id)
                         version++
@@ -129,8 +147,20 @@ fun AttachmentPanel(
 private fun AttachmentRow(
     attachment: Attachment,
     store: AttachmentStore,
+    /** OCR 功能是否可用；关掉时「识别文字」按钮不出现。 */
+    ocrUsable: Boolean,
+    onNotice: (String) -> Unit,
     onDelete: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember(attachment.id) { mutableStateOf(false) }
+    /** 识别结果就地展开给用户看，不弹窗 —— 他要的往往是复制其中一段。 */
+    var ocrText by remember(attachment.id) { mutableStateOf<String?>(null) }
+
+    // 只有图片才谈得上识别：Tesseract 吃的是位图，对 PDF 直接喂会失败。
+    // 判定用 mime 前缀而不是扩展名 —— mime 来自系统，比文件名可靠。
+    val isImage = attachment.mime?.startsWith("image/") == true
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -167,7 +197,47 @@ private fun AttachmentRow(
                     maxLines = 1
                 )
             }
+            if (ocrUsable && isImage) {
+                TextButton(
+                    enabled = !busy,
+                    onClick = {
+                        busy = true
+                        ocrText = null
+                        onNotice("正在识别…")
+                        scope.launch {
+                            // 识别是 CPU 重活，必须离开主线程，否则界面直接冻住。
+                            val r = withContext(Dispatchers.IO) {
+                                OcrEngine.recognize(context, store.fileOf(attachment))
+                            }
+                            busy = false
+                            if (r.ok) {
+                                ocrText = r.text.ifBlank { "（这张图里没有识别到文字）" }
+                                onNotice("识别完成。")
+                            } else {
+                                onNotice(r.message)
+                            }
+                        }
+                    }
+                ) { Text(if (busy) "识别中…" else "识别文字") }
+            }
             TextButton(onClick = onDelete) { Text("删除") }
+        }
+    }
+
+    ocrText?.let { txt ->
+        // 结果单独一张卡放在下面，而不是塞进上面那行的 Column ——
+        // 识别出的文字可能几百字，挤在文件名旁边会把整行撑变形。
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Text(
+                txt,
+                modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

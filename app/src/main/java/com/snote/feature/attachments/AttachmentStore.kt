@@ -2,6 +2,7 @@ package com.snote.feature.attachments
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -181,6 +182,37 @@ class AttachmentStore(private val context: Context) {
         val files = thumbsDir.listFiles() ?: return 0
         var n = 0
         files.forEach { if (it.delete()) n++ }
+        return n
+    }
+
+    /**
+     * 把若干附件挂到一张卡片上（写 evidence 表）。
+     *
+     * 挂卡片而不是挂文档：evidence 的主键是 (card_id, attachment_id, locator)，
+     * 「这条结论的证据在哪份资料里」的粒度天然是卡片 —— 一篇文档可以有多个论点，
+     * 各自引用不同的附件。走 doc 级会把这个信息抹平。
+     *
+     * locator 留空：分享导入时不知道用户关心附件的哪一页/哪一段，
+     * 编一个假的定位比留空更坏（将来按 locator 跳转会跳到错的地方）。
+     */
+    fun linkToCard(cardId: Long, attachmentIds: List<Long>): Int {
+        val db = helper.writableDatabase
+        var n = 0
+        db.beginTransaction()
+        try {
+            for (aid in attachmentIds) {
+                val v = ContentValues().apply {
+                    put("card_id", cardId)
+                    put("attachment_id", aid)
+                    put("locator", "")
+                }
+                // 主键冲突 = 已经挂过了，跳过即可（CONFLICT_IGNORE 返回 -1）。
+                if (db.insertWithOnConflict("evidence", null, v, SQLiteDatabase.CONFLICT_IGNORE) > 0) n++
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
         return n
     }
 

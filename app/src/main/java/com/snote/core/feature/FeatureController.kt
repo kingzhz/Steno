@@ -3,6 +3,7 @@ package com.snote.core.feature
 import android.content.Context
 import com.snote.feature.attachments.AttachmentStore
 import com.snote.feature.notes.NoteRepository
+import com.snote.feature.ocr.OcrEngine
 
 /** 一次开关动作的结果，用于给用户反馈。 */
 data class FeatureActionResult(
@@ -23,6 +24,7 @@ data class FeatureActionResult(
  *
  *   search  → 关闭：dropFts() 整表删除 + VACUUM 还磁盘；开启：rebuildFts() 重扫
  *   thumbs  → 关闭：删掉 files/thumbs 下全部缩略图；开启：不预生成（按需生成）
+ *   ocr     → 关闭：删 derived 表里的 ocr 行 + 释放原生引擎；开启：不预识别
  *   其余    → 无派生物，只记状态
  *
  * ## 顺序纪律
@@ -67,6 +69,19 @@ class FeatureController(private val context: Context) {
             val n = attachments.clearThumbs()
             FeatureActionResult(true, "已删除 " + n + " 张缩略图。原图保留。")
         }
+        FeatureRegistry.OCR.id -> {
+            // 两件事：清掉识别结果，并释放 Tesseract 的原生资源。
+            //
+            // 释放不能省：TessBaseAPI 在原生堆上持有模型（几十 MB），
+            // 只清表却不释放，用户关了功能内存还占着 —— 那就不叫关掉了。
+            val n = repo.deleteDerived("ocr")
+            OcrEngine.release()
+            FeatureActionResult(
+                true,
+                "已删除 " + n + " 条识别结果并释放识别引擎。原图与附件未动，" +
+                    "重新打开可再次识别。"
+            )
+        }
         else -> FeatureActionResult(true, "已关闭「" + def.title + "」。源数据未动。")
     }
 
@@ -79,6 +94,10 @@ class FeatureController(private val context: Context) {
         FeatureRegistry.THUMBS.id ->
             // 刻意不预生成：几百份附件全量转码要几分钟，而用户可能只看其中几张。
             FeatureActionResult(true, "已打开。缩略图会在浏览时按需生成。")
+        FeatureRegistry.OCR.id ->
+            // 同样不预识别：识别是本机 CPU 的重活，几百张图要跑很久，
+            // 而用户可能只关心其中几张。按需触发（在附件面板点「识别文字」）。
+            FeatureActionResult(true, "已打开。在附件面板点「识别文字」即可开始，本机完成。")
         else -> FeatureActionResult(true, "已打开「" + def.title + "」。")
     }
 

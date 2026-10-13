@@ -14,13 +14,52 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Snote">
+        <!--
+          launchMode=singleTop：分享是「拿内容进同一篇会话」的动作，不该每次
+          都新起一个 Activity 实例。用 singleTop 后已有实例会被复用并走
+          onNewIntent —— 否则用户从浏览器连续分享两个链接会叠出两个窗口，
+          返回时逐个关闭，很怪。
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Snote">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              接收系统分享。
+
+              这两个 filter 是本应用最核心的入口：主打场景就是「把零散的想法、
+              截图、文件丢进来」。没有它们，从浏览器复制的一段话、相册里的一张图，
+              都没有任何办法直接进这里 —— 只能先存别处再手动导入。
+
+              分开写 SEND 与 SEND_MULTIPLE：前者是单个附件（绝大多数 App），
+              后者是多选（相册多选图片）。两者的 EXTRA_STREAM 类型不同
+              （Uri vs ArrayList<Uri>），不能合并。
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
 

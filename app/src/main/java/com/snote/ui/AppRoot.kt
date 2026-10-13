@@ -55,7 +55,10 @@ import com.snote.ui.theme.ThemePreset
  */
 private sealed interface Screen {
     data object Notes : Screen
-    data class Editor(val docId: Long) : Screen
+    /**
+     * @param focusCardId 进编辑器后要定位并高亮的卡片；0 = 从列表进来，不需要定位。
+     */
+    data class Editor(val docId: Long, val focusCardId: Long = 0L) : Screen
     data object Features : Screen
     data object Memory : Screen
     data object Search : Screen
@@ -179,11 +182,15 @@ fun AppRoot(
                     repo = repo,
                     docId = current.docId,
                     onBack = { overlay = null },
+                    // 从编辑器内部跳转（链接面板、双链）不传 focus：
+                    // 那是「换一篇看」，不是「找某一处」，没有目标卡片。
                     onOpenDoc = { overlay = Screen.Editor(it) },
+                    focusCardId = current.focusCardId,
                 )
                 Screen.Search -> SearchScreen(
                     repo = repo,
-                    onOpenDoc = { overlay = Screen.Editor(it) },
+                    // 命中项带着卡片 id 一起来：打开的是整篇文档，但落点是那一张卡。
+                    onOpenDoc = { docId, cardId -> overlay = Screen.Editor(docId, cardId) },
                     onBack = { overlay = null },
                 )
                 Screen.Settings -> SettingsScreen(
@@ -203,7 +210,7 @@ fun AppRoot(
                 )
                 Screen.Tags -> TagScreen(
                     helper = repo.dbHelper,
-                    onOpenDoc = { overlay = Screen.Editor(it) },
+                    onOpenDoc = { docId, cardId -> overlay = Screen.Editor(docId, cardId) },
                     onBack = { overlay = null },
                 )
                 Screen.Features -> FeaturePanel(

@@ -50,7 +50,12 @@ import com.snote.ui.theme.Spacing
 @Composable
 fun TagScreen(
     helper: KbOpenHelper,
-    onOpenDoc: (Long) -> Unit,
+    /**
+     * @param docId 文档 id
+     * @param cardId 点中的那张卡 —— 与检索页一致，打开后要定位到它。
+     *        标签页列出的本来就是「某张卡」，不定位等于把用户丢进文档让他自己找。
+     */
+    onOpenDoc: (Long, Long) -> Unit,
     onBack: () -> Unit,
 ) {
     val store = remember { TagStore(helper) }
@@ -162,7 +167,7 @@ fun TagScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { info?.second?.let(onOpenDoc) }
+                                        .clickable { info?.second?.let { onOpenDoc(it, cardIds[i]) } }
                                         .padding(Spacing.lg)
                                 ) {
                                     Text(

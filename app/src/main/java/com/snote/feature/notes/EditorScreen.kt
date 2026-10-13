@@ -1,6 +1,7 @@
 package com.snote.feature.notes
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -29,13 +30,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -80,6 +85,13 @@ fun EditorScreen(
     docId: Long,
     onBack: () -> Unit,
     onOpenDoc: (Long) -> Unit,
+    /**
+     * 从检索页跳进来时要定位到的卡片 id；0 = 不需要定位。
+     *
+     * 刻意不叫「高亮卡片」：定位与高亮是同一个动作的两面 ——
+     * 只滚不亮，用户看不出停在哪；只亮不滚，长文档里那一圈框在屏幕外。
+     */
+    focusCardId: Long = 0L,
 ) {
     val initial = remember(docId) { repo.loadDraft(docId) }
 
@@ -153,8 +165,46 @@ fun EditorScreen(
     }
     val accent: Color = MaterialTheme.colorScheme.primary
 
+    /** 编辑器滚动位置；跳转定位要驱动它滚到某张卡。 */
+    val scroll = rememberScrollState()
+
+    /**
+     * 每张卡的 y 坐标（相对内容列顶部）。
+     *
+     * 为什么不用 key 的索引算位置：卡片高度随正文长短差几十倍，
+     * 只能量不能算。用 mutableStateMapOf 而不是普通 Map，是因为
+     * onGloballyPositioned 会在布局完成后才填充它 —— 普通 Map 改了不触发重组，
+     * LanchedEffect 拿到的会永远是空表。
+     */
+    val cardTops = remember(docId) { mutableStateMapOf<Long, Int>() }
+
+    /** 当前要高亮的卡片；进入时来自检索页，用户一点编辑就清掉。 */
+    var focus by remember(docId, focusCardId) { mutableStateOf(focusCardId) }
+
+    /**
+     * 还没滚过去的定位目标；滚完立刻归零。
+     *
+     * 为什么不能直接用 focus 当触发条件：卡片坐标是布局完成后才填进 cardTops 的，
+     * 表一变（比如用户后来又加了一张卡）就会重跑副作用，把视图又拽回那张卡上。
+     * 定位是一次性动作，所以用一个滚完就清的目标变量。
+     */
+    var pendingScroll by remember(docId, focusCardId) { mutableStateOf(focusCardId) }
+
     fun commit(next: DocDraft) {
+        // 用户开始动手就不再高亮：那一圈强调色是「你要找的是这张」，
+        // 找到之后还挂着，会让人以为卡片进了什么特殊状态。
+        if (focus != 0L) focus = 0L
         state = next
+    }
+
+    // 布局完成、坐标齐了再滚；滚完把目标清掉，避免后续布局变化又把它拽回来。
+    LaunchedEffect(pendingScroll, cardTops.size) {
+        val target = pendingScroll
+        if (target == 0L) return@LaunchedEffect
+        val y = cardTops[target] ?: return@LaunchedEffect
+        // 留一段余量：目标停在顶端时，上下文（上一张卡的尾巴）也还看得见。
+        scroll.animateScrollTo((y - 96).coerceAtLeast(0))
+        pendingScroll = 0L
     }
 
     fun saveNow() {
@@ -253,7 +303,7 @@ fun EditorScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scroll)
                     .padding(horizontal = Spacing.lg)
             ) {
                 Spacer(Modifier.height(Spacing.md))
@@ -268,11 +318,21 @@ fun EditorScreen(
                 Spacer(Modifier.height(Spacing.lg))
 
                 state.cards.forEachIndexed { index, card ->
+                    // 只有已落库的卡片才可能被检索命中（新卡 id = 0），
+                    // 所以量位置也只对有 id 的卡有意义。
+                    val focused = card.id != 0L && card.id == focus
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { coords ->
+                                if (card.id != 0L) cardTops[card.id] = coords.positionInParent().y.toInt()
+                            },
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        ),
+                        // 描边而不是填色：填色会和「卡片是容器」的既有视觉语言打架，
+                        // 一圈 2dp 的强调色边足够把视线钉住，又不改变卡片本身的样子。
+                        border = if (focused) BorderStroke(2.dp, accent) else null
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(Spacing.md)) {
                             Row(

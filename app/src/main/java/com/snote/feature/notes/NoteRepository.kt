@@ -405,6 +405,18 @@ class NoteRepository(context: Context) {
         db.insertWithOnConflict("fts_card", null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
+    /**
+     * 删除某一类派生物（derived 表 + 对应的内容）。
+     *
+     * 只是删账本行还是连内容一起删，由 kind 决定 —— 目前两类派生物：
+     *   thumb  缩略图文件在 files/thumbs，账本在 derived
+     *   ocr    识别结果直接存在 derived 表里（没有独立表，量小）
+     *
+     * 返回删除的行数。
+     */
+    fun deleteDerived(kind: String): Int =
+        helper.writableDatabase.delete("derived", "kind = ?", arrayOf(kind))
+
     /** 把卡片拼回 markdown，存入 doc.body_md 作为导出快照，不参与写入路径。 */
     private fun toMarkdown(draft: DocDraft): String {
         val sb = StringBuilder()

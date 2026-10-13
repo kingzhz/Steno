@@ -11,6 +11,9 @@ okhttp = "4.12.0"
 # PDF 文字层提取。选它而不是 iText：iText 是 AGPL，用在 App 里会传染整个
 # 项目的许可证 —— 本项目要开源，这一条是硬约束。PdfBox-Android 是 Apache-2.0。
 pdfbox = "2.0.27.0"
+# OCR 引擎。Apache-2.0（与 PdfBox 同一取舍：本项目开源，不能用 AGPL 的 iText 类库）。
+# JitPack 上最新已构建版本是 4.8.0（GitHub 的 4.9.0 tag JitPack 还没编）。
+tesseract4android = "4.8.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -28,6 +31,8 @@ androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
+# 坐标形如 com.github.<owner>:<repo>:<tag>（JitPack 约定）
+tesseract4android = { module = "com.github.adaptech-cz:Tesseract4Android", version.ref = "tesseract4android" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

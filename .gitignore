@@ -9,7 +9,16 @@ build/
 .cxx
 local.properties
 *.apk
+
+# —— 签名密钥：绝不进仓库 ——
+# 丢了密钥 = 永远无法给已装用户推更新（换密钥必须卸载重装，旧数据全丢）。
+# 泄露了密钥 = 任何人都能伪造这个 App 的「正版」更新包。
 *.keystore
+*.jks
+*.p12
+# 含 storePassword / keyPassword 的明文配置。
+keystore.properties
+# 只放行 SDK 自带的 debug 密钥（不是我们的，公开无妨）
 !debug.keystore
 
 # 端到端自检脚本（tools/buddy-*.mjs）读的账号凭据，含真实 access/refresh token。

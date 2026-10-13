@@ -38,26 +38,46 @@ object FeatureRegistry {
         cost = FeatureCost.FREE
     )
 
+    /**
+     * OCR 文字识别。
+     *
+     * ## 为什么是免费的本地引擎，而不是付费 API
+     *
+     * 原设计写的是「调用外部 API」。改成端上 Tesseract 有两个硬理由：
+     *   ① 本应用承诺「数据全在设备上」，把扫描件传给别人等于自毁承诺 ——
+     *      而扫描件恰恰是身份证、合同、病历这类最敏感的东西；
+     *   ② 识别本身不花钱、离线可用、没有配额，就不该挂一个预算门。
+     *
+     * 代价是模型体积（chi_sim 2.4MB + eng 4.1MB 打进 apk）与首次解压耗时，
+     * 这个取舍与 PdfBox 一致 —— 都是「用几 MB 换数据不出设备」。
+     *
+     * ## 它的派生物是什么
+     *
+     * 识别结果写进 derived 表（kind = "ocr"），与原图分开存。
+     * 关掉功能时删这些行、不删附件本身 —— 重新打开要重新识别，那正是
+     * 「派生物可删可重建」的意思。
+     */
     val OCR = FeatureDef(
         id = "ocr",
         title = "OCR 文字识别",
-        summary = "扫描件/图片转文字。重建需调用外部 API。",
+        summary = "扫描件/图片转文字，识别在本机完成，不上传、不花钱。",
         requires = setOf(DEDUP.id),
         derivedKinds = setOf("ocr"),
-        cost = FeatureCost.PAID_API,
-        rebuildNote = "按文档逐页调用识别接口，耗时与费用随附件量线性增长。",
+        cost = FeatureCost.LOCAL_HEAVY,
+        rebuildNote = "识别在本机 CPU 完成，不花钱；一张图通常几秒。中途关掉功能会丢弃已有结果。",
         defaultEnabled = false
     )
 
-    val VECTOR = FeatureDef(
-        id = "vector",
-        title = "语义检索",
-        summary = "向量召回，用于模糊描述查询。重建需调用嵌入 API。",
-        derivedKinds = setOf("vector"),
-        cost = FeatureCost.PAID_API,
-        rebuildNote = "每张卡片调用一次嵌入接口，只补源变更或版本过旧的条目。",
-        defaultEnabled = false
-    )
+    // 这里原本有一个「语义检索 VECTOR」开关，已删除。
+    //
+    // 为什么删：它只登记了 id / derivedKinds / 预算门文案，没有任何实现 ——
+    // 打开它除了弹一次预算门什么都不发生，用户会以为「开了就能模糊搜」，
+    // 而实际还是 bigram 精确匹配。注册表里挂着一个不存在的功能，比没有它更坏。
+    //
+    // 为什么不是「补上实现」：端上中文嵌入模型最小的 bge-small-zh 也要 ~96MB
+    // 权重 + ONNX Runtime，而个人库几百到几千张卡的量级，bigram + FTS5 已经够用。
+    // 本项目为了省 2MB 宁可不用 material-icons-extended，为一个边际收益背 100MB
+    // 是自相矛盾的。真要做，该做成「可选下载的模型包」而不是默认内置。
 
     val AGENT = FeatureDef(
         id = "agent",
@@ -122,7 +142,7 @@ object FeatureRegistry {
     )
 
     val ALL: List<FeatureDef> =
-        listOf(WIKI, SEARCH, THUMBS, DEDUP, OCR, VECTOR, AGENT, WEB_SEARCH, MEMORY)
+        listOf(WIKI, SEARCH, THUMBS, DEDUP, OCR, AGENT, WEB_SEARCH, MEMORY)
 
     fun byId(id: String): FeatureDef? = ALL.firstOrNull { it.id == id }
 

@@ -155,6 +155,12 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(Spacing.lg))
 
+            Spacer(Modifier.height(Spacing.lg))
+
+            BackupSection()
+
+            Spacer(Modifier.height(Spacing.lg))
+
             VisionModelSection(catalog = catalog)
 
             Spacer(Modifier.height(Spacing.lg))
