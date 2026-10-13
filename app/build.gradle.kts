@@ -37,8 +37,19 @@ android {
         applicationId = "com.snote"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        /**
+         * 版本号。
+         *
+         * v0.1.1 而不是 v0.1.0：v0.1.0 已经作为 debug 构建发布过（签名是 Android
+         * 通用调试密钥），而这一版换成了本项目的正式 release 密钥。
+         * 两个签名不能互相覆盖 —— 已装 v0.1.0 的人必须卸载才能装这一版，
+         * 而卸载会清空数据。
+         *
+         * 所以刻意不覆盖旧的 tag/release：版本号前进一位本身就是
+         * 「与上一版不兼容」的信号，也让历史可追溯。
+         */
+        versionCode = 2
+        versionName = "0.1.1"
         vectorDrawables { useSupportLibrary = true }
     }
 
