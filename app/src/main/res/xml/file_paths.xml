@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  拍照临时文件的共享路径。
+
+  只暴露 cache/capture 这一个子目录 —— 不是整个 cacheDir，更不是 filesDir。
+  FileProvider 的授权本质是「把某个路径下的文件临时借给别的应用」，
+  范围给大了等于把私有目录整体外借。
+-->
+<paths>
+    <cache-path name="capture" path="capture/" />
+</paths>

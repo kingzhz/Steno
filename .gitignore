@@ -1,0 +1,36 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.apk
+*.keystore
+!debug.keystore
+
+# 端到端自检脚本（tools/buddy-*.mjs）读的账号凭据，含真实 access/refresh token。
+credential-*.json
+
+# —— 工作残留，不进仓库 ——
+# 改主题前的文件备份（含历史版本源码）
+_backup/
+# 会话临时粘贴的大段文本
+pastes/
+# 本机 DSH 工具的会话数据
+.dsh/
+.kotlin/
+# 图标探针产出的临时截图
+.probe-look.png
+# 脚本事故产物：%SystemDrive% 未被展开，Windows 字体缓存被写进了这个字面目录
+%SystemDrive%/
+
+# 构建产物（任意层级的 build 目录，例如 app/build）
+build/
+# 本机工具状态
+.local/
+# 探针脚本产物
+*.probe-look.png

@@ -1,0 +1,35 @@
+[versions]
+# 版本组合待首次构建验证（本机尚无 Gradle，未跑过 assemble）
+agp = "8.11.1"
+kotlin = "2.1.20"
+coreKtx = "1.16.0"
+lifecycle = "2.9.0"
+activityCompose = "1.10.1"
+composeBom = "2025.04.01"
+coroutines = "1.10.2"
+okhttp = "4.12.0"
+# PDF 文字层提取。选它而不是 iText：iText 是 AGPL，用在 App 里会传染整个
+# 项目的许可证 —— 本项目要开源，这一条是硬约束。PdfBox-Android 是 Apache-2.0。
+pdfbox = "2.0.27.0"
+
+[libraries]
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+# Preview 面板的运行时。只有它 + 上面的 preview 注解一起才能渲染出画面，
+# 且只需在 debug 变体里存在（release 包不该背这个体积）。
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
